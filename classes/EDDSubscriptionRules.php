@@ -254,17 +254,17 @@ class EDDSubscriptionRules {
 				$final_prepare_args = [];
 
 				if ( ! empty( $product_id_conditions ) ) {
-					$where_clause_parts[] = '( ' . implode( ' OR ', $product_id_conditions ) . ' )';
+					$where_clause_parts[] = '( ' . implode( ' OR ', array_fill( 0, count( $product_id_conditions ), 'sub.product_id = %d' ) ) . ' )';
 					foreach ( array_keys( $product_id_conditions ) as $key ) {
 						$final_prepare_args[] = $prepare_args[ $key ]; }
 				}
 				if ( ! empty( $simple_product_conditions ) ) {
-					$where_clause_parts[] = '( ' . implode( ' OR ', $simple_product_conditions ) . ' )';
+					$where_clause_parts[] = '( ' . implode( ' OR ', array_fill( 0, count( $simple_product_conditions ), '(sub.product_id = %d AND (sub.price_id IS NULL OR sub.price_id = 0))' ) ) . ' )';
 					foreach ( array_keys( $simple_product_conditions ) as $key ) {
 						$final_prepare_args[] = $prepare_args[ $key ]; }
 				}
 				if ( ! empty( $variant_pair_conditions ) ) {
-					$where_clause_parts[] = '( ' . implode( ' OR ', $variant_pair_conditions ) . ' )';
+					$where_clause_parts[] = '( ' . implode( ' OR ', array_fill( 0, count( $variant_pair_conditions ), '(sub.product_id = %d AND sub.price_id = %d)' ) ) . ' )';
 					foreach ( array_keys( $variant_pair_conditions ) as $key_base ) {
 						$final_prepare_args[] = $prepare_args[ "{$key_base}_pid" ];
 						$final_prepare_args[] = $prepare_args[ "{$key_base}_prid" ];
@@ -278,13 +278,8 @@ class EDDSubscriptionRules {
 				$final_prepare_args[]  = 'active'; // Add status.
 
 				$sql_check = $wpdb->prepare(
-					"EXISTS (
-                       SELECT 1 FROM {$wpdb->prefix}edd_subscriptions AS sub
-                       JOIN {$wpdb->prefix}edd_customers AS cust ON cust.id = sub.customer_id
-                       WHERE cust.id = (SELECT provider_id FROM {$wpdb->prefix}fc_contact_relations WHERE subscriber_id = {$wpdb->prefix}fc_subscribers.id AND provider = 'edd' LIMIT 1)
-                       AND ({$combined_where_clause})
-                       AND sub.status = %s
-                    )",
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"EXISTS ( SELECT 1 FROM {$wpdb->prefix}edd_subscriptions AS sub JOIN {$wpdb->prefix}edd_customers AS cust ON cust.id = sub.customer_id WHERE cust.id = (SELECT provider_id FROM {$wpdb->prefix}fc_contact_relations WHERE subscriber_id = {$wpdb->prefix}fc_subscribers.id AND provider = 'edd' LIMIT 1) AND ({$combined_where_clause}) AND sub.status = %s )",
 					$final_prepare_args
 				);
 				// --- End of detailed SQL check ---
@@ -451,6 +446,7 @@ class EDDSubscriptionRules {
 		$sql   .= ' AND status = %s LIMIT 1';
 		$args[] = 'active';
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$subscription = $wpdb->get_row( $wpdb->prepare( $sql, $args ) );
 		return (bool) $subscription;
 	}
@@ -495,16 +491,15 @@ class EDDSubscriptionRules {
 		// Add status argument.
 		$prepare_args[] = 'active';
 
-		$sql = $wpdb->prepare(
-			"SELECT id FROM {$wpdb->prefix}edd_subscriptions
-              WHERE customer_id = %d
-              AND ({$variant_where_clause})
-              AND status = %s
-              LIMIT 1",
-			$prepare_args
+		$subscription = $wpdb->get_row(
+            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+			$wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT id FROM {$wpdb->prefix}edd_subscriptions WHERE customer_id = %d AND ({$variant_where_clause}) AND status = %s LIMIT 1",
+				$prepare_args
+			)
 		);
 
-		$subscription = $wpdb->get_row( $sql );
 		return (bool) $subscription;
 	}
 
@@ -528,13 +523,15 @@ class EDDSubscriptionRules {
 			return false;
 		}
 
-		$sql          = $wpdb->prepare(
-			"SELECT id FROM {$wpdb->prefix}edd_subscriptions
+		$subscription = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT id FROM {$wpdb->prefix}edd_subscriptions
               WHERE customer_id = %d AND status = %s LIMIT 1",
-			$customer->id,
-			'active'
+				$customer->id,
+				'active'
+			)
 		);
-		$subscription = $wpdb->get_row( $sql );
+
 		return (bool) $subscription;
 	}
 }
