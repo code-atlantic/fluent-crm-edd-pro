@@ -187,7 +187,7 @@ class EDDSubscriptionRules {
 			if ( ! $property ) {
 				continue; }
 
-			if ( $property !== 'edd_pro_active_subscription' ) {
+			if ( 'edd_pro_active_subscription' !== $property ) {
 				continue; }
 			if ( ! defined( 'EDD_RECURRING_VERSION' ) ) {
 				continue; }
@@ -232,7 +232,7 @@ class EDDSubscriptionRules {
 						if ( count( $parts ) === 2 && is_numeric( $parts[0] ) && is_numeric( $parts[1] ) ) {
 							$product_id = (int) $parts[0];
 							$price_id   = (int) $parts[1];
-							if ( $price_id === 0 ) {
+							if ( 0 === $price_id ) {
 								$key                               = "spid_$product_id";
 								$simple_product_conditions[ $key ] = '(sub.product_id = %d AND (sub.price_id IS NULL OR sub.price_id = 0))';
 								$prepare_args[ $key ]              = $product_id;
@@ -337,7 +337,7 @@ class EDDSubscriptionRules {
 			$data_value = $condition['data_value'] ?? null;
 			$operator   = $condition['operator'] ?? 'in';
 
-			if ( $data_key !== 'edd_pro_active_subscription' || is_null( $data_value ) ) {
+			if ( 'edd_pro_active_subscription' !== $data_key || is_null( $data_value ) ) {
 				continue; }
 
 			$selected_options = array_filter( (array) $data_value );
@@ -365,7 +365,7 @@ class EDDSubscriptionRules {
 						if ( count( $parts ) === 2 && is_numeric( $parts[0] ) && is_numeric( $parts[1] ) ) {
 							$product_id = (int) $parts[0];
 							$price_id   = (int) $parts[1];
-							if ( $price_id === 0 ) {
+							if ( 0 === $price_id ) {
 								$check_product_ids[ $product_id ] = $product_id; // Treat simple product like -all.
 							} elseif ( $price_id > 0 ) {
 								$variant_key                         = "{$product_id}-{$price_id}";
@@ -389,7 +389,10 @@ class EDDSubscriptionRules {
 			}
 
 			// Assess based on operator and overall match result.
-			if ( ( $operator === 'in' && ! $has_match ) || ( $operator === 'not_in' && $has_match ) ) {
+			if ( 'in' === $operator && ! $has_match ) {
+				return false; // Condition failed.
+			}
+			if ( 'not_in' === $operator && $has_match ) {
 				return false; // Condition failed.
 			}
 
