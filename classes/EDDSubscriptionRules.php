@@ -7,6 +7,8 @@
  * @package FluentCRM\CustomFeatures
  */
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
 namespace FluentCRM\EDDPro;
 
 /**
@@ -196,10 +198,11 @@ class EDDSubscriptionRules {
 			$operator         = $filter['operator'] ?? 'in';
 
 			if ( empty( $selected_options ) ) {
-				break; } // Break if nothing selected
+				break;
+			} // Break if nothing selected.
 
 			// --- Check if 'Any' option is selected ---
-			$check_for_any = in_array( 'any', $selected_options );
+			$check_for_any = in_array( 'any', $selected_options, true );
 
 			if ( $check_for_any ) {
 				// Build simplified SQL check for ANY active subscription.
@@ -345,7 +348,7 @@ class EDDSubscriptionRules {
 				continue; }
 
 			// --- Check if 'Any' option is selected ---
-			$check_for_any = in_array( 'any', $selected_options );
+			$check_for_any = in_array( 'any', $selected_options, true );
 			$has_match     = false;
 
 			if ( $check_for_any ) {
