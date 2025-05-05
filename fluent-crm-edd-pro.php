@@ -23,7 +23,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 add_action(
 	'init',
 	function () {
-		( new \FluentCRM\EDDPro\EDDSubscriptionRules() )->register();
+		( new \FluentCRM\EDDPro\Rules() )->register();
 	},
 	99
 );

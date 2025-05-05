@@ -18,7 +18,7 @@ namespace FluentCRM\EDDPro;
  *
  * @package CustomCRM
  */
-class EDDSubscriptionRules {
+class Rules {
 	/**
 	 * Register hooks and filters.
 	 *
