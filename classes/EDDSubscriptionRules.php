@@ -9,7 +9,7 @@
 
 // phpcs:disable WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
 
-namespace CustomCRM;
+namespace FluentCRM\EDDPro;
 
 /**
  * Class EDDSubscriptionRules
@@ -31,12 +31,9 @@ class EDDSubscriptionRules
         // Add custom rule types.
         add_filter('fluentcrm_advanced_filter_options', [ $this, 'addEddFilterOptions' ], 11, 1);
         // Use the hook corresponding to our new custom group key
-        add_filter('fluentcrm_contacts_filter_custom_edd_subscription_rules', [ $this, 'applyEddFilters' ], 10, 2);
+        add_filter('fluentcrm_contacts_filter_edd_pro', [ $this, 'applyEddFilters' ], 10, 2);
 
         add_filter('fluent_crm/event_tracking_condition_groups', [ $this, 'addEddFilterOptions' ], 11, 1);
-
-        // Add AJAX handler for our custom product selector - hook name adjusted to match component request
-        // remove_action('wp_ajax_fluentcrm_get_ajax_options_product_selector_custom_edd_subscription_rules', [ $this, 'getEddProductOptions' ]); // Remove AJAX handler
 
         // Apply conditional subscription rules.
         add_filter('fluentcrm_automation_conditions_assess_edd', [ $this, 'assess_subscription_condition' ], 10, 3);
@@ -55,7 +52,7 @@ class EDDSubscriptionRules
         $edd_conditions = $this->getCustomConditionItems();
 
         // Define our custom group key
-        $group_key = 'custom_edd_subscription_rules';
+        $group_key = 'edd_pro';
 
         // Add our custom group with its conditions.
         $groups[ $group_key ] = [
@@ -162,8 +159,8 @@ class EDDSubscriptionRules
         // Define the single combined rule
         $conditions = [];
         $conditions[] = [
-            'value'            => 'custom_edd_active_subscription_combined', // New single key
-            'label'            => __('Has Active EDD Subscription', 'fluent-crm-custom-features'),
+            'value'            => 'edd_pro_active_subscription', // New single key
+            'label'            => __('Has Active Subscription', 'fluent-crm-custom-features'),
             'type'             => 'selections',
             'options'          => $combined_options, // Use the combined list
             'is_multiple'      => true,
@@ -195,7 +192,7 @@ class EDDSubscriptionRules
             }
 
             // Only handle our combined rule key now
-            if ($property !== 'custom_edd_active_subscription_combined') {
+            if ($property !== 'edd_pro_active_subscription') {
                 continue;
             }
 
@@ -312,7 +309,7 @@ class EDDSubscriptionRules
             $operator    = $condition['operator'] ?? 'in';
 
             // Only handle our combined key
-            if ($data_key !== 'custom_edd_active_subscription_combined' || is_null($data_value)) {
+            if ($data_key !== 'edd_pro_active_subscription' || is_null($data_value)) {
                  continue;
             }
 
