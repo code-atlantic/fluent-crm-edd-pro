@@ -292,20 +292,20 @@ class EDDSubscriptionRules {
 				$query->whereRaw( $sql_check );
 			} else { // 'not_in'
 				// The NOT IN logic needs to consider the 'any' case too.
-				$query->where(function ( $subQuery ) use ( $sql_check, $check_for_any ) {
+				$query->where(function ( $sub_query ) use ( $sql_check, $check_for_any ) {
 					if ( $check_for_any ) {
 						// If checking for 'NOT IN Any', simply check NOT EXISTS plus the commerce relation check.
-						$subQuery->whereRaw( "NOT ({$sql_check})" )
-								->orWhere(function ( $orQuery ) {
-									$orQuery->whereDoesntHave('contact_commerce', function ( $q ) {
+						$sub_query->whereRaw( "NOT ({$sql_check})" )
+								->orWhere(function ( $or_query ) {
+									$or_query->whereDoesntHave('contact_commerce', function ( $q ) {
 										$q->where( 'provider', 'edd' );
 									});
 								});
 					} else {
-							// If checking for 'NOT IN specific products/variants', use the original complex check.
-							$subQuery->whereRaw( "NOT ({$sql_check})" )
-								->orWhere(function ( $orQuery ) {
-									$orQuery->whereDoesntHave('contact_commerce', function ( $q ) {
+						// If checking for 'NOT IN specific products/variants', use the original complex check.
+						$sub_query->whereRaw( "NOT ({$sql_check})" )
+								->orWhere(function ( $or_query ) {
+									$or_query->whereDoesntHave('contact_commerce', function ( $q ) {
 										$q->where( 'provider', 'edd' );
 									});
 								});
@@ -404,6 +404,11 @@ class EDDSubscriptionRules {
 	/**
 	 * Check if subscriber has active subscription for ANY variant of given product IDs.
 	 * (Kept for the original rule, price_id check is optional)
+	 *
+	 * @param  \FluentCrm\App\Models\Subscriber $subscriber Subscriber instance.
+	 * @param  array                            $product_ids Product IDs.
+	 * @param  int|null                         $price_id Price ID.
+	 * @return bool
 	 */
 	protected function has_active_subscription( $subscriber, $product_ids, $price_id = null ) {
 		global $wpdb;
@@ -449,10 +454,22 @@ class EDDSubscriptionRules {
 
 	/**
 	 * Check if subscriber has an active subscription matching ANY of the provided product_id/price_id pairs.
+	 *
+	 * @param  \FluentCrm\App\Models\Subscriber $subscriber Subscriber instance.
+	 * @param  array                            $variant_pairs Product ID/price ID pairs.
+	 * @return bool
 	 */
 	protected function has_active_subscription_variant( $subscriber, $variant_pairs ) {
 		global $wpdb;
-		// ... (get $customer->id as before) ...
+
+		$user_id = $subscriber->user_id;
+		$email   = $subscriber->email;
+
+		if ( ! $user_id && ! $email ) {
+			return false;
+		}
+
+		$customer = $wpdb->get_row( $wpdb->prepare( 'SELECT id FROM ' . $wpdb->prefix . 'edd_customers WHERE user_id = %d OR email = %s LIMIT 1', $user_id, $email ) );
 		if ( ! $customer ) {
 			return false;
 		}
@@ -490,6 +507,9 @@ class EDDSubscriptionRules {
 
 	/**
 	 * Check if subscriber has ANY active subscription.
+	 *
+	 * @param  \FluentCrm\App\Models\Subscriber $subscriber Subscriber instance.
+	 * @return bool
 	 */
 	protected function has_any_active_subscription( $subscriber ) {
 		global $wpdb;
@@ -498,10 +518,12 @@ class EDDSubscriptionRules {
 		$user_id = $subscriber->user_id;
 		$email   = $subscriber->email;
 		if ( ! $user_id && ! $email ) {
-			return false; }
-		$customer = $wpdb->get_row( $wpdb->prepare( /* ... same as other helpers ... */ ) );
+			return false;
+		}
+		$customer = $wpdb->get_row( $wpdb->prepare( 'SELECT id FROM ' . $wpdb->prefix . 'edd_customers WHERE user_id = %d OR email = %s LIMIT 1', $user_id, $email ) );
 		if ( ! $customer ) {
-			return false; }
+			return false;
+		}
 
 		$sql          = $wpdb->prepare(
 			"SELECT id FROM {$wpdb->prefix}edd_subscriptions
