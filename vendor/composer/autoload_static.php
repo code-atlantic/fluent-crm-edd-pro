@@ -7,14 +7,14 @@ namespace Composer\Autoload;
 class ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d
 {
     public static $prefixLengthsPsr4 = array (
-        'C' => 
+        'F' => 
         array (
-            'CustomCRM\\' => 10,
+            'FluentCRM\\EDDPro\\' => 17,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'CustomCRM\\' => 
+        'FluentCRM\\EDDPro\\' => 
         array (
             0 => __DIR__ . '/../..' . '/classes',
         ),
@@ -22,20 +22,18 @@ class ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
-        'CustomCRM\\Actions\\RandomWaitTimeAction' => __DIR__ . '/../..' . '/classes/Actions/RandomWaitTimeAction.php',
-        'CustomCRM\\Actions\\UpdateContactPropertyAction' => __DIR__ . '/../..' . '/classes/Actions/UpdateContactPropertyAction.php',
-        'CustomCRM\\JSONEventTrackingHandler' => __DIR__ . '/../..' . '/classes/JSONEventTrackingHandler.php',
-        'CustomCRM\\EDDSubscriptionRules' => __DIR__ . '/../..' . '/classes/EDDSubscriptionRules.php',
-        'CustomCRM\\SmartLinkHandler' => __DIR__ . '/../..' . '/classes/SmartLinkHandler.php',
+        'FluentCRM\\EDDPro\\EDDSubscriptionRules' => __DIR__ . '/../..' . '/classes/EDDSubscriptionRules.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
-        return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d::$classMap;
+        return \Closure::bind(
+            function () use ($loader) {
+                $loader->prefixLengthsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d::$prefixLengthsPsr4;
+                $loader->prefixDirsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d::$prefixDirsPsr4;
+                $loader->classMap = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44d::$classMap;
 
-        }, null, ClassLoader::class);
+            }, null, ClassLoader::class
+        );
     }
 }

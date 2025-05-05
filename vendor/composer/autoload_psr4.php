@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'CustomCRM\\' => array($baseDir . '/classes'),
+    'FluentCRM\\EDDPro\\' => array($baseDir . '/classes'),
 );

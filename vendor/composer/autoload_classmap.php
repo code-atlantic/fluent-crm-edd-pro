@@ -7,8 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
-    'CustomCRM\\Actions\\RandomWaitTimeAction' => $baseDir . '/classes/Actions/RandomWaitTimeAction.php',
-    'CustomCRM\\Actions\\UpdateContactPropertyAction' => $baseDir . '/classes/Actions/UpdateContactPropertyAction.php',
-    'CustomCRM\\JSONEventTrackingHandler' => $baseDir . '/classes/JSONEventTrackingHandler.php',
-    'CustomCRM\\SmartLinkHandler' => $baseDir . '/classes/SmartLinkHandler.php',
+    'FluentCRM\\EDDPro\\EDDSubscriptionRules' => $baseDir . '/classes/EDDSubscriptionRules.php',
 );

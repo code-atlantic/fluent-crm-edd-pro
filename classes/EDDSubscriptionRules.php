@@ -11,10 +11,6 @@
 
 namespace CustomCRM;
 
-use FluentCrm\Framework\Support\Arr;
-use FluentCampaign\App\Services\Commerce\Commerce;
-use FluentCrm\App\Models\Subscriber;
-
 /**
  * Class EDDSubscriptionRules
  *
@@ -143,7 +139,7 @@ class EDDSubscriptionRules
                 //     $product->post_title,
                 //     \edd_currency_filter(\edd_format_amount(\edd_get_download_price($product->ID)))
                 // );
-				$label =  $product->post_title;
+                $label =  $product->post_title;
                 $product_group_options[$key] = \wp_kses_decode_entities($label);
             }
             // Add this product's options group to the main grouped array
