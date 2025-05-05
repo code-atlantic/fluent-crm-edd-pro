@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: FluentCRM - EDD Pro
  * Plugin URI: https://github.com/code-atlantic/fluent-crm-edd-pro
@@ -22,9 +21,9 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 add_action(
-    'init',
-    function () {
-        ( new \FluentCRM\EDDPro\EDDSubscriptionRules() )->register();
-    },
-    99
+	'init',
+	function () {
+		( new \FluentCRM\EDDPro\EDDSubscriptionRules() )->register();
+	},
+	99
 );

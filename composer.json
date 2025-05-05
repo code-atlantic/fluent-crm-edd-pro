@@ -1,17 +1,42 @@
 {
-    "name": "code-atlantic/fluent-crm-edd-pro",
-    "type": "wordpress-plugin",
-    "autoload": {
-        "psr-4": {
-            "CodeAtlantic\\FluentCrmEddPro\\": "classes/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Daniel Iser",
-            "email": "daniel@code-atlantic.com"
-        }
+  "name": "code-atlantic/fluent-crm-edd-pro",
+  "type": "wordpress-plugin",
+  "autoload": {
+    "psr-4": {
+      "CodeAtlantic\\FluentCrmEddPro\\": "classes/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Daniel Iser",
+      "email": "daniel@code-atlantic.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {},
+  "require-dev": {
+    "code-atlantic/coding-standards": "^1.1.0",
+    "phpstan/phpstan": "^2.1.14",
+    "szepeviktor/phpstan-wordpress": "v2.0.1",
+    "phpstan/extension-installer": "^1.4.3"
+  },
+  "scripts": {
+    "format": "vendor/bin/phpcbf --standard=.phpcs.xml.dist --report-summary --report-source",
+    "lint": "vendor/bin/phpcs --standard=.phpcs.xml.dist",
+    "post-install-cmd": [
+      "composer dump-autoload"
     ],
-    "minimum-stability": "dev",
-    "require": {}
+    "post-update-cmd": [
+      "composer dump-autoload"
+    ],
+    "phpstan": [
+      "vendor/bin/phpstan analyse --memory-limit=2048M"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    }
+  }
 }
