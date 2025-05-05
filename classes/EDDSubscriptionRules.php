@@ -226,7 +226,7 @@ class EDDSubscriptionRules {
 					if ( substr( $option_key, -4 ) === '-all' ) {
 						$product_id = (int) str_replace( '-all', '', $option_key );
 						if ( $product_id > 0 ) {
-							$key                           = "pid_$product_id";
+							$key                           = "pid_{$product_id}";
 							$product_id_conditions[ $key ] = 'sub.product_id = %d';
 							$prepare_args[ $key ]          = $product_id;
 						}
@@ -236,11 +236,11 @@ class EDDSubscriptionRules {
 							$product_id = (int) $parts[0];
 							$price_id   = (int) $parts[1];
 							if ( 0 === $price_id ) {
-								$key                               = "spid_$product_id";
+								$key                               = "spid_{$product_id}";
 								$simple_product_conditions[ $key ] = '(sub.product_id = %d AND (sub.price_id IS NULL OR sub.price_id = 0))';
 								$prepare_args[ $key ]              = $product_id;
 							} elseif ( $price_id > 0 ) {
-								$key_base                             = "pair_$product_id_$price_id";
+								$key_base                             = "pair_{$product_id}_{$price_id}";
 								$variant_pair_conditions[ $key_base ] = '(sub.product_id = %d AND sub.price_id = %d)';
 								$prepare_args[ "{$key_base}_pid" ]    = $product_id;
 								$prepare_args[ "{$key_base}_prid" ]   = $price_id;
