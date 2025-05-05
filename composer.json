@@ -1,0 +1,17 @@
+{
+    "name": "code-atlantic/fluent-crm-edd-pro",
+    "type": "wordpress-plugin",
+    "autoload": {
+        "psr-4": {
+            "CodeAtlantic\\FluentCrmEddPro\\": "classes/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Daniel Iser",
+            "email": "daniel@code-atlantic.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}

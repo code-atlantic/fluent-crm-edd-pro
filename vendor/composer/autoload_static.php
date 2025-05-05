@@ -7,14 +7,14 @@ namespace Composer\Autoload;
 class ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e
 {
     public static $prefixLengthsPsr4 = array (
-        'F' => 
+        'C' => 
         array (
-            'FluentCRM\\EDDPro\\' => 17,
+            'CodeAtlantic\\FluentCrmEddPro\\' => 29,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'FluentCRM\\EDDPro\\' => 
+        'CodeAtlantic\\FluentCrmEddPro\\' => 
         array (
             0 => __DIR__ . '/../..' . '/classes',
         ),
@@ -22,18 +22,15 @@ class ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
-        'FluentCRM\\EDDPro\\EDDSubscriptionRules' => __DIR__ . '/../..' . '/classes/EDDSubscriptionRules.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
-        return \Closure::bind(
-            function () use ($loader) {
-                $loader->prefixLengthsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e::$prefixLengthsPsr4;
-                $loader->prefixDirsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e::$prefixDirsPsr4;
-                $loader->classMap = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e::$classMap;
+        return \Closure::bind(function () use ($loader) {
+            $loader->prefixLengthsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit99c59dbdf6020c5c39595c91f005e44e::$classMap;
 
-            }, null, ClassLoader::class
-        );
+        }, null, ClassLoader::class);
     }
 }

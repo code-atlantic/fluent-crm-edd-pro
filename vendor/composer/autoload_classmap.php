@@ -7,5 +7,4 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
-    'FluentCRM\\EDDPro\\EDDSubscriptionRules' => $baseDir . '/classes/EDDSubscriptionRules.php',
 );
