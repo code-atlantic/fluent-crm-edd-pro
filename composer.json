@@ -3,7 +3,7 @@
   "type": "wordpress-plugin",
   "autoload": {
     "psr-4": {
-      "CodeAtlantic\\FluentCrmEddPro\\": "classes/"
+      "FluentCRM\\EDDPro\\": "classes/"
     }
   },
   "authors": [
