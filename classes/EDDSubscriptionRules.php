@@ -56,14 +56,14 @@ class EDDSubscriptionRules
      */
     public function addEddFilterOptions( $groups )
     {
-        $edd_conditions = $this->getConditionItems();
+        $edd_conditions = $this->getCustomConditionItems();
 
         // Define our custom group key
         $group_key = 'custom_edd_subscription_rules';
 
         // Add our custom group with its conditions.
         $groups[ $group_key ] = [
-            'label'    => __('Custom EDD Rules', 'fluent-crm-custom-features'), // Use a custom label
+            'label'    => __('EDD Pro', 'fluent-crm-custom-features'), // Use a custom label
             'value'    => $group_key,
             'children' => $edd_conditions,
         ];
@@ -72,45 +72,114 @@ class EDDSubscriptionRules
     }
 
     /**
-     * Get subscription filter items.
+     * Get definitions for our custom filter rules.
      *
-     * @return array<int<0,max>,array<string,mixed>>
+     * @return array
      */
-    public function getConditionItems()
+    protected function getCustomConditionItems(): array
     {
-        // Fetch all EDD products directly
+        $product_options_grouped = []; // Group options by product
+
         $products = \get_posts(
             [
-            'post_type'      => 'download',
-            'posts_per_page' => -1, // Get all products
-            'orderby'        => 'title',
-            'order'          => 'ASC',
-            'post_status'    => 'publish',
+                'post_type'      => 'download',
+                'posts_per_page' => -1, // Get all products
+                'orderby'        => 'title',
+                'order'          => 'ASC',
+                'post_status'    => 'publish',
             ]
         );
 
-        $formatted_products = [];
-        foreach ( $products as $product ) {
-            // Use ID as key and Title as value
-            $formatted_products[ (string) $product->ID ] = $product->post_title;
+        foreach ($products as $product) {
+            $product_id_str = (string) $product->ID;
+            $product_group_options = []; // Temporary options for this product
+
+            if (\edd_has_variable_prices($product->ID)) {
+                $prices = \edd_get_variable_prices($product->ID);
+                if ($prices) {
+                    // Add "All Variants" option first for this product
+                    $all_variants_key = $product_id_str . '-all';
+                    $all_variants_label = sprintf(
+                        '%s - %s',
+                        $product->post_title,
+                        __('All Variants', 'fluent-crm-custom-features')
+                    );
+                    // Add directly to the product's group
+                    $product_group_options[$all_variants_key] = \wp_kses_decode_entities($all_variants_label);
+
+                    // Prepare individual variants for sorting within the product group
+                    $variants_temp = [];
+                    foreach ($prices as $price_id => $price_details) {
+                        $key = $product_id_str . '-' . $price_id;
+                        $label = sprintf(
+                            '%s - %s (%s)',
+                            $product->post_title,
+                            \esc_html($price_details['name']),
+                            \edd_currency_filter(\edd_format_amount($price_details['amount']))
+                        );
+                        // Store temporarily for sorting
+                        $variants_temp[$key] = \wp_kses_decode_entities($label);
+                    }
+                    // Sort variants alphabetically by label within this product
+                    uasort($variants_temp, 'strcasecmp');
+                    // Merge sorted variants into the product's group options
+                    $product_group_options = array_merge($product_group_options, $variants_temp);
+
+                } else {
+                    // Treat as simple product if marked variable but no prices found
+                    $key = $product_id_str . '-0';
+                    $label = sprintf(
+                        '%s (%s)',
+                        $product->post_title,
+                        \edd_currency_filter(\edd_format_amount(\edd_get_download_price($product->ID)))
+                    );
+                     $product_group_options[$key] = \wp_kses_decode_entities($label);
+                }
+            } else {
+                // Simple product
+                $key = $product_id_str . '-0'; // Use 0 for non-variable price ID
+                // $label = sprintf(
+                //     '%s (%s)',
+                //     $product->post_title,
+                //     \edd_currency_filter(\edd_format_amount(\edd_get_download_price($product->ID)))
+                // );
+				$label =  $product->post_title;
+                $product_group_options[$key] = \wp_kses_decode_entities($label);
+            }
+            // Add this product's options group to the main grouped array
+            if (!empty($product_group_options)) {
+                $product_options_grouped[$product_id_str] = $product_group_options;
+            }
         }
 
-        return [
-            [
-            'value'            => 'custom_edd_active_subscription',
-            'label'            => __('Has Active Subscription', 'fluent-crm-custom-features'),
-            'type'             => 'selections', // Keep as selections for multi-select UI
-            // 'component'        => 'product_selector', // Remove component key
-            'options'          => $formatted_products, // Add options directly
+        // Flatten the grouped options while preserving the internal order
+        $combined_options = [];
+        foreach ($product_options_grouped as $product_id => $options) {
+             $combined_options = array_merge($combined_options, $options);
+        }
+        // Note: We are not sorting the final combined list alphabetically anymore
+        // to preserve the "All Variants" first ordering within each product group.
+        // If alphabetical sorting of PRODUCTS is still desired, a more complex sort
+        // on $product_options_grouped would be needed before flattening.
+
+
+        // Define the single combined rule
+        $conditions = [];
+        $conditions[] = [
+            'value'            => 'custom_edd_active_subscription_combined', // New single key
+            'label'            => __('Has Active EDD Subscription', 'fluent-crm-custom-features'),
+            'type'             => 'selections',
+            'options'          => $combined_options, // Use the combined list
             'is_multiple'      => true,
             'disabled'         => ! \FluentCampaign\App\Services\Commerce\Commerce::isEnabled('edd') || ! defined('EDD_RECURRING_VERSION'),
-            'help'             => __('Filter contacts who have an active subscription for selected products', 'fluent-crm-custom-features'),
+            'help'             => __('Filter contacts who have an active subscription for selected products or specific product variants.', 'fluent-crm-custom-features'),
             'custom_operators' => [
-            'in'     => __('Has Active', 'fluent-crm-custom-features'),
-            'not_in' => __('Does Not Have Active', 'fluent-crm-custom-features'),
-            ],
+                'in'     => __('Has Active', 'fluent-crm-custom-features'),
+                'not_in' => __('Does Not Have Active', 'fluent-crm-custom-features'),
             ],
         ];
+
+        return $conditions;
     }
 
     /**
@@ -124,84 +193,105 @@ class EDDSubscriptionRules
     {
         global $wpdb;
 
-        // No need to track processed indices here as we are using a custom hook
-        // $processed_indices = [];
-
-        foreach ( $filters as $index => $filter ) { // Get index
+        foreach ( $filters as $index => $filter ) {
             $property = $filter['property'] ?? '';
+            if (! $property ) { continue; 
+            }
 
-            if (! $property ) {
+            // Only handle our combined rule key now
+            if ($property !== 'custom_edd_active_subscription_combined') {
                 continue;
             }
 
-            // Use the renamed key here
-            if ('custom_edd_active_subscription' === $property && ! defined('EDD_RECURRING_VERSION') ) {
-                // $processed_indices[] = $index;
+            // Check if EDD Recurring is active
+            if (! defined('EDD_RECURRING_VERSION') ) {
                 continue;
             }
 
-            switch ( $filter['property'] ) {
-            // Use the renamed key here
-            case 'custom_edd_active_subscription':
-                $product_ids = (array) $filter['value'];
-                $operator    = $filter['operator'];
+            $selected_options = array_filter((array) ($filter['value'] ?? []));
+            $operator         = $filter['operator'] ?? 'in';
 
-                // No need to apply filter if product IDs are empty.
-                if (empty($product_ids) ) {
-                    // $processed_indices[] = $index;
-                    break;
+            if (empty($selected_options)) { break; 
+            } // Break if nothing selected for this rule
+
+            $product_id_conditions = []; // For `-all` matches: sub.product_id = %d
+            $variant_pair_conditions = []; // For specific variants: (sub.product_id = %d AND sub.price_id = %d)
+            $prepare_args = []; // Arguments for $wpdb->prepare
+
+            foreach ($selected_options as $option_key) {
+                if (substr($option_key, -4) === '-all') {
+                    // Handle "All Variants" option
+                    $product_id = (int) str_replace('-all', '', $option_key);
+                    if ($product_id > 0) {
+                         $product_id_conditions[] = "sub.product_id = %d";
+                         $prepare_args[] = $product_id;
+                    }
+                } else {
+                    // Handle specific variant or simple product option (productID-priceID)
+                    $parts = explode('-', $option_key, 2);
+                    if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+                        $product_id = (int) $parts[0];
+                        $price_id   = (int) $parts[1];
+                        $variant_pair_conditions[] = "(sub.product_id = %d AND sub.price_id = %d)";
+                        $prepare_args[] = $product_id;
+                        $prepare_args[] = $price_id;
+                    }
                 }
+            }
 
-                $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+            // Build the WHERE clause parts
+            $where_clause_parts = [];
+            if (!empty($product_id_conditions)) {
+                $where_clause_parts[] = '( ' . implode(' OR ', $product_id_conditions) . ' )';
+            }
+            if (!empty($variant_pair_conditions)) {
+                $where_clause_parts[] = '( ' . implode(' OR ', $variant_pair_conditions) . ' )';
+            }
 
-                if ('in' === $operator ) {
-                    $query->whereRaw(
-                        $wpdb->prepare(
-                            "EXISTS (
-									SELECT 1
-									FROM {$wpdb->prefix}edd_subscriptions AS sub
-									JOIN {$wpdb->prefix}edd_customers AS cust ON cust.id = sub.customer_id
-									WHERE cust.id = (SELECT provider_id FROM {$wpdb->prefix}fc_contact_relations WHERE subscriber_id = {$wpdb->prefix}fc_subscribers.id AND provider = 'edd' LIMIT 1)
-									AND sub.product_id IN ($placeholders)
-									AND sub.status = %s
-								)",
-                            array_merge($product_ids, [ 'active' ])
-                        )
-                    );
-                } else { // 'not_in' operator
-                    $query->where(
-                        function ($subQuery) use ($wpdb, $product_ids, $placeholders) {
-                            $subQuery->whereRaw(
-                                $wpdb->prepare(
-                                    "NOT EXISTS (
-                                        SELECT 1
-                                        FROM {$wpdb->prefix}edd_subscriptions AS sub
-                                        JOIN {$wpdb->prefix}edd_customers AS cust ON cust.id = sub.customer_id
-                                        WHERE cust.id = (SELECT provider_id FROM {$wpdb->prefix}fc_contact_relations WHERE subscriber_id = {$wpdb->prefix}fc_subscribers.id AND provider = 'edd' LIMIT 1)
-                                        AND sub.product_id IN ($placeholders)
-                                        AND sub.status = %s
-                                    )",
-                                    array_merge($product_ids, [ 'active' ])
-                                )
-                                // Also need to handle cases where the user has no EDD customer record at all
-                            )->orWhereDoesntHave(
-                                'contact_commerce', function ($q) {
-                                    $q->where('provider', 'edd');
+            if (empty($where_clause_parts)) { break; 
+            } // Break if no valid conditions generated
+
+            $combined_where_clause = implode(' OR ', $where_clause_parts);
+
+            // Add the final 'active' status argument for prepare
+            $prepare_args[] = 'active';
+
+            // Construct the main SQL check subquery
+            $sql_check = $wpdb->prepare(
+                "EXISTS (
+                   SELECT 1 FROM {$wpdb->prefix}edd_subscriptions AS sub
+                   JOIN {$wpdb->prefix}edd_customers AS cust ON cust.id = sub.customer_id
+                   WHERE cust.id = (SELECT provider_id FROM {$wpdb->prefix}fc_contact_relations WHERE subscriber_id = {$wpdb->prefix}fc_subscribers.id AND provider = 'edd' LIMIT 1)
+                   AND ({$combined_where_clause})
+                   AND sub.status = %s
+                )",
+                $prepare_args
+            );
+
+            // Apply the filter based on operator
+            if ('in' === $operator ) {
+                $query->whereRaw($sql_check);
+            } else { // 'not_in'
+                $query->where(
+                    function ($subQuery) use ($sql_check) {
+                        $subQuery->whereRaw("NOT ({$sql_check})")
+                            ->orWhere(
+                                function ($orQuery) {
+                                    $orQuery->whereDoesntHave(
+                                        'contact_commerce', function ($q) {
+                                            $q->where('provider', 'edd');
+                                        }
+                                    );
                                 }
                             );
-                        }
-                    );
-                }
-                // $processed_indices[] = $index;
-                break;
+                    }
+                );
             }
-        }
 
-        // Remove the filters we've already processed so default handlers don't process them again
-        // No longer needed as we are using a custom hook
-        // foreach ($processed_indices as $index) {
-        //    unset($filters[$index]);
-        // }
+            // Since we processed the only rule we care about, break the main loop
+            break;
+
+        } // End foreach $filters
 
         return $query;
     }
@@ -216,36 +306,71 @@ class EDDSubscriptionRules
      */
     public function assess_subscription_condition( $result, $conditions, $subscriber )
     {
-        foreach ( $conditions as $condition ) {
-            if (empty($condition['data_key']) || 'custom_edd_active_subscription' !== $condition['data_key'] ) {
-                continue;
-            }
-
-            $product_ids = (array) $condition['data_value'];
-            $operator    = $condition['operator'];
-
-            if (! defined('EDD_RECURRING_VERSION') || empty($product_ids) ) {
-                return $result;
-            }
-
-            $has_subscription = $this->has_active_subscription($subscriber, $product_ids);
-
-            if (( 'in' === $operator && ! $has_subscription ) || ( 'not_in' === $operator && $has_subscription ) ) {
-                return false;
-            }
+        if (! defined('EDD_RECURRING_VERSION')) {
+             return $result; // Cannot check subscriptions without Recurring Payments
         }
 
+        foreach ( $conditions as $condition ) {
+            $data_key    = $condition['data_key'] ?? '';
+            $data_value  = $condition['data_value'] ?? null;
+            $operator    = $condition['operator'] ?? 'in';
+
+            // Only handle our combined key
+            if ($data_key !== 'custom_edd_active_subscription_combined' || is_null($data_value)) {
+                 continue;
+            }
+
+            $selected_options = array_filter((array) $data_value);
+            if (empty($selected_options)) { continue; 
+            } // Skip if nothing selected
+
+            $check_product_ids = [];
+            $check_variant_pairs = [];
+
+            foreach ($selected_options as $option_key) {
+                if (substr($option_key, -4) === '-all') {
+                    $product_id = (int) str_replace('-all', '', $option_key);
+                    if ($product_id > 0) {
+                         $check_product_ids[] = $product_id;
+                    }
+                } else {
+                    $parts = explode('-', $option_key, 2);
+                    if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+                        $check_variant_pairs[] = ['product_id' => (int) $parts[0], 'price_id' => (int) $parts[1]];
+                    }
+                }
+            }
+
+            $has_match = false;
+            // Check if *any* of the selected conditions are met
+            if (!empty($check_product_ids)) {
+                // Check subscriptions for products where "All Variants" was selected
+                $has_match = $this->has_active_subscription($subscriber, $check_product_ids);
+            }
+            if (!$has_match && !empty($check_variant_pairs)) {
+                 // If no match yet, check the specific variants
+                 $has_match = $this->has_active_subscription_variant($subscriber, $check_variant_pairs);
+            }
+
+
+            // Assess based on operator and match result
+            if (($operator === 'in' && !$has_match) || ($operator === 'not_in' && $has_match)) {
+                return false; // Condition failed
+            }
+
+            // Since we processed the only rule we care about, break the conditions loop
+            break;
+        }
+
+        // If we reached here, the condition passed or wasn't applicable
         return $result;
     }
 
     /**
-     * Check if subscriber has active subscription.
-     *
-     * @param  \FluentCrm\App\Models\Subscriber $subscriber  Subscriber instance.
-     * @param  array                            $product_ids Product IDs to check.
-     * @return bool Whether subscriber has active subscription.
+     * Check if subscriber has active subscription for ANY variant of given product IDs.
+     * (Kept for the original rule, price_id check is optional)
      */
-    protected function has_active_subscription( $subscriber, $product_ids )
+    protected function has_active_subscription( $subscriber, $product_ids, $price_id = null)
     {
         global $wpdb;
 
@@ -268,13 +393,63 @@ class EDDSubscriptionRules
             return false;
         }
 
-        $subscription = $wpdb->get_row(
-            $wpdb->prepare(
-                'SELECT id FROM ' . $wpdb->prefix . 'edd_subscriptions WHERE customer_id = %d AND product_id IN (' . implode(',', array_fill(0, count($product_ids), '%d')) . ') AND status = %s LIMIT 1',
-                array_merge([ $customer->id ], $product_ids, [ 'active' ])
-            )
+        $product_placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+        $args = array_merge([ $customer->id ], $product_ids);
+
+        $sql = "SELECT id FROM {$wpdb->prefix}edd_subscriptions
+                WHERE customer_id = %d
+                AND product_id IN ($product_placeholders)";
+
+        // Optional: Add price_id check if needed for specific scenarios
+        if (!is_null($price_id) && is_numeric($price_id)) {
+             $sql .= " AND price_id = %d";
+             $args[] = (int) $price_id;
+        }
+
+        $sql .= " AND status = %s LIMIT 1";
+        $args[] = 'active';
+
+        $subscription = $wpdb->get_row($wpdb->prepare($sql, $args));
+        return (bool) $subscription;
+    }
+
+    /**
+     * Check if subscriber has an active subscription matching ANY of the provided product_id/price_id pairs.
+     */
+    protected function has_active_subscription_variant($subscriber, $variant_pairs)
+    {
+        global $wpdb;
+        // ... (get $customer->id as before) ...
+        if (! $customer ) { return false;
+        }
+
+        $variant_conditions = [];
+        $prepare_args = [$customer->id]; // Start with customer ID
+
+        foreach ($variant_pairs as $pair) {
+            $variant_conditions[] = "(product_id = %d AND price_id = %d)";
+            $prepare_args[] = $pair['product_id'];
+            $prepare_args[] = $pair['price_id'];
+        }
+
+        if (empty($variant_conditions)) { return false;
+        }
+
+        $variant_where_clause = implode(' OR ', $variant_conditions);
+
+        // Add status argument
+        $prepare_args[] = 'active';
+
+        $sql = $wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}edd_subscriptions
+              WHERE customer_id = %d
+              AND ({$variant_where_clause})
+              AND status = %s
+              LIMIT 1",
+            $prepare_args
         );
 
+        $subscription = $wpdb->get_row($sql);
         return (bool) $subscription;
     }
 }
