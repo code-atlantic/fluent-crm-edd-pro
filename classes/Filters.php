@@ -119,8 +119,8 @@ class Filters {
 					$download_group_options = array_merge( $download_group_options, $variants_temp );
 				} else {
 					// Treat as simple product if marked variable but no prices found.
-					$key                           = $download_id_str . '-0';
-					$label                         = sprintf(
+					$key                            = $download_id_str . '-0';
+					$label                          = sprintf(
 						'%s (%s)',
 						$download->post_title,
 						\edd_currency_filter( \edd_format_amount( \edd_get_download_price( $download->ID ) ) )
@@ -129,8 +129,8 @@ class Filters {
 				}
 			} else {
 				// Simple product.
-				$key                           = $download_id_str . '-0'; // Use 0 for non-variable price ID.
-				$label                         = sprintf(
+				$key                            = $download_id_str . '-0'; // Use 0 for non-variable price ID.
+				$label                          = sprintf(
 					'%s (%s)',
 					$download->post_title,
 					\edd_currency_filter( \edd_format_amount( \edd_get_download_price( $download->ID ) ) )
@@ -193,7 +193,7 @@ class Filters {
 			// Add product options.
 			'is_multiple'      => true, // Allow multiple selections.
 			'disabled'         => ! function_exists( '\edd_reviews' ), // Check if EDD Reviews class exists.
-			'help'             => __( 'Filter contacts based on whether they have submitted a review for specific products or any product via EDD Reviews.', 'fluent-crm-edd-pro' ), // Updated help
+			'help'             => __( 'Filter contacts based on whether they have submitted a review for specific products or any product via EDD Reviews.', 'fluent-crm-edd-pro' ), // Updated help.
 			'custom_operators' => [
 				'in'     => __( 'Has Reviewed', 'fluent-crm-edd-pro' ), // Updated operators.
 				'not_in' => __( 'Has Not Reviewed', 'fluent-crm-edd-pro' ),
@@ -232,7 +232,7 @@ class Filters {
 				} // Skip if nothing selected.
 
 				$check_for_any = in_array( 'any', $selected_products, true );
-				$download_ids   = [];
+				$download_ids  = [];
 				if ( ! $check_for_any ) {
 					$download_ids = array_map( 'absint', array_diff( $selected_products, [ 'any' ] ) );
 					$download_ids = array_filter( $download_ids ); // Remove any invalid IDs.
@@ -253,7 +253,11 @@ class Filters {
 				// Add product ID condition if specific products are selected.
 				if ( ! $check_for_any && ! empty( $download_ids ) ) {
 					$placeholders = implode( ',', array_fill( 0, count( $download_ids ), '%d' ) );
-					$sql_where   .= $wpdb->prepare( " AND c.comment_post_ID IN ({$placeholders})", $download_ids );
+					$sql_where   .= $wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+						" AND c.comment_post_ID IN ({$placeholders})",
+						$download_ids
+					);
 				}
 
 				// Combine the subquery.
@@ -301,7 +305,7 @@ class Filters {
 				);
 			} else {
 				// --- Build detailed SQL check for specific products/variants ---
-				$download_id_conditions     = [];   // For `-all` matches.
+				$download_id_conditions    = [];   // For `-all` matches.
 				$simple_product_conditions = []; // For `-0` matches.
 				$variant_pair_conditions   = []; // For specific variants.
 				$prepare_args              = [];
@@ -310,15 +314,15 @@ class Filters {
 					if ( substr( $option_key, -4 ) === '-all' ) {
 						$download_id = (int) str_replace( '-all', '', $option_key );
 						if ( $download_id > 0 ) {
-							$key                           = "pid_{$download_id}";
+							$key                            = "pid_{$download_id}";
 							$download_id_conditions[ $key ] = 'sub.product_id = %d';
-							$prepare_args[ $key ]          = $download_id;
+							$prepare_args[ $key ]           = $download_id;
 						}
 					} else {
 						$parts = explode( '-', $option_key, 2 );
 						if ( count( $parts ) === 2 && is_numeric( $parts[0] ) && is_numeric( $parts[1] ) ) {
 							$download_id = (int) $parts[0];
-							$price_id   = (int) $parts[1];
+							$price_id    = (int) $parts[1];
 							if ( 0 === $price_id ) {
 								$key                               = "spid_{$download_id}";
 								$simple_product_conditions[ $key ] = '(sub.product_id = %d AND (sub.price_id IS NULL OR sub.price_id = 0))';
@@ -446,7 +450,7 @@ class Filters {
 						$parts = explode( '-', $option_key, 2 );
 						if ( count( $parts ) === 2 && is_numeric( $parts[0] ) && is_numeric( $parts[1] ) ) {
 							$download_id = (int) $parts[0];
-							$price_id   = (int) $parts[1];
+							$price_id    = (int) $parts[1];
 							if ( 0 === $price_id ) {
 								$check_product_ids[ $download_id ] = $download_id; // Treat simple product like -all.
 							} elseif ( $price_id > 0 ) {
@@ -515,7 +519,7 @@ class Filters {
 		}
 
 		$download_placeholders = implode( ',', array_fill( 0, count( $download_ids ), '%d' ) );
-		$args                 = array_merge( [ $customer->id ], $download_ids );
+		$args                  = array_merge( [ $customer->id ], $download_ids );
 
 		$sql = "SELECT id FROM {$wpdb->prefix}edd_subscriptions
                 WHERE customer_id = %d
@@ -530,8 +534,10 @@ class Filters {
 		$sql   .= ' AND status = %s LIMIT 1';
 		$args[] = 'active';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
 		$subscription = $wpdb->get_row( $wpdb->prepare( $sql, $args ) );
+		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+
 		return (bool) $subscription;
 	}
 
@@ -731,15 +737,14 @@ class Filters {
 		// Add product ID condition if specific products are selected.
 		if ( ! empty( $download_ids ) ) {
 			$download_placeholders = implode( ',', array_fill( 0, count( $download_ids ), '%d' ) );
-			$sql                 .= " AND c.comment_post_ID IN ({$download_placeholders})";
-			$args                 = array_merge( $args, $download_ids ); // Add product IDs to args.
+			$sql                  .= " AND c.comment_post_ID IN ({$download_placeholders})";
+			$args                  = array_merge( $args, $download_ids ); // Add product IDs to args.
 		}
 
 		// Prepare the final SQL query.
-		$prepared_sql = $wpdb->prepare( $sql, $args );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$review_count = $wpdb->get_var( $prepared_sql );
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+		$review_count = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
+		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
 		return $review_count > 0;
 	}
